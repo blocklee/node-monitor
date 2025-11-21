@@ -1,0 +1,45 @@
+[
+    {
+      "id": "test-https://testnet-qng.rpc.qitmeer.io",
+      "host": "3.0.",
+      "port": 18,
+      "user": "meer",
+      "pass": "meer"
+    },
+    {
+      "id": "test-https://meer.testnet.meerfans.club",
+      "host": "43.16.",
+      "port": 18,
+      "user": "meer",
+      "pass": "meer"
+    },
+    {
+      "id": "test-https://testnet-qng.qitmeer.io",
+      "host": "10.14.",
+      "port": 18,
+      "user": "meer",
+      "pass": "meer"
+    },
+    {
+      "id": "main-https://qng.rpc.dimai.ai",
+      "host": "52.22.",
+      "port": 18,
+      "user": "meer",
+      "pass": "meer"
+    },
+    {
+        "id": "main-https://qng.qitmeer.io",
+        "host": "16.16.",
+        "port": 18,
+        "user": "meer",
+        "pass": "meer"
+    },
+    {
+        "id": "main-https://rpc.woowow.io",
+        "host": "43.10.",
+        "port": 18,
+        "user": "meer",
+        "pass": "meer"
+    }
+  ]
+  
