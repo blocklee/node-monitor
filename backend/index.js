@@ -5,7 +5,7 @@ const { exec } = require('child_process');
 const path = require('path');
 
 const app = express();
-app.use(cors()); // 允许前端跨域访问
+// app.use(cors()); // 允许前端跨域访问 // Nginx 处理 CORS
 
 // API: 获取节点状态
 app.get('/api/status', (req, res) => {
