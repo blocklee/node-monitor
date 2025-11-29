@@ -4,63 +4,48 @@
     <van-nav-bar title="QNG节点监控" />
 
     <!-- 内容区域 -->
-    <div style="padding: 15px;">
+    <div class="container">
       <!-- 节点列表 -->
       <van-cell
         v-for="node in nodesArray"
         :key="node.id"
-        :title-style="{ flex: '0 0 30%',  }"
-        :value-style="{ flex: '0 0 70%',  textAlign: 'right' }"
+        class="node-cell"
       >
         <!-- 左侧标题 -->
         <template #title>
-          <div style="padding: 0; display: flex; flex-direction: column;">
-            <span style="font-size: 12px; color: #ff4d4f; font-weight: bold;">{{ node.id }}</span>
-            <!-- <span style="font-size: 12px; color: #888;">IP: {{ node.host }}</span> -->
+          <div class="node-title">
+            <span>{{ node.id }}</span>
           </div>
         </template>
 
         <!-- 右侧值 -->
         <template #value>
-          <div 
-            style="
-              padding: 0;
-              display: flex; 
-              flex-direction: column; 
-              text-align: left; 
-              word-break: break-all; /* 超长文字换行 */
-              padding-left: 80px; /* 避免紧贴左侧 */
-            "
-          >
-            <span style="font-size: 12px;">
-              <span style="color: #1890ff;">Hash:</span> {{ node.stateroot?.Hash ?? 'N/A' }}
-            </span>
-            <span style="font-size: 12px;">
-              <span style="color: #1890ff;">Order:</span> {{ node.stateroot?.Order ?? 'N/A' }}
-            </span>
-            <span style="font-size: 12px;">
-              <span style="color: #1890ff;">Height:</span> {{ node.stateroot?.Height ?? 'N/A' }}
-            </span>
-            <span style="font-size: 12px;">
-              <span style="color: #1890ff;">EVMHeight:</span> {{ node.stateroot?.EVMHeight ?? 'N/A' }}
-            </span>
-            <span style="font-size: 12px;">
-              <span style="color: #1890ff;">EVMStateRoot:</span> {{ node.stateroot?.EVMStateRoot ?? 'N/A' }}
-            </span>
-            <span style="font-size: 12px;">
-              <span style="color: #1890ff;">StateRoot:</span> {{ node.stateroot?.StateRoot ?? 'N/A' }}
-            </span>
+          <div class="node-value">
+            <div class="node-field">
+              <span class="label">Order:</span> {{ node.stateroot?.Order ?? 'N/A' }}
+            </div>
+            <div class="node-field">
+              <span class="label">EVMHeight:</span> {{ node.stateroot?.EVMHeight ?? 'N/A' }}
+            </div>
+            <div class="node-field">
+              <!-- <span class="label">Timestamp:</span> {{ node.timestamp ?? 'N/A' }} -->
+              <span class="label">Timestamp:</span> {{ formatTime(node.timestamp) }}
+            </div>
+            <div class="node-field">
+              <span class="label">Hash:</span> {{ node.stateroot?.Hash ?? 'N/A' }}
+            </div>
+            <div class="node-field">
+              <span class="label">EVMStateRoot:</span> {{ node.stateroot?.EVMStateRoot ?? 'N/A' }}
+            </div>
+            <div class="node-field">
+              <span class="label">StateRoot:</span> {{ node.stateroot?.StateRoot ?? 'N/A' }}
+            </div>
           </div>
         </template>
       </van-cell>
 
       <!-- 刷新按钮 -->
-      <van-button
-        type="primary"
-        block
-        style="margin-top: 20px;"
-        @click="refresh"
-      >
+      <van-button type="primary" block class="refresh-btn" @click="refresh">
         刷新
       </van-button>
     </div>
@@ -77,15 +62,18 @@ export default {
     }
   },
   computed: {
-    // 将对象转换为数组方便 v-for 遍历
     nodesArray() {
       if (!this.nodes || typeof this.nodes !== 'object') return [];
       return Object.entries(this.nodes)
-        .filter(([id, value]) => value && value.stateroot) // 过滤掉无效节点
-        .map(([id, value]) => ({
-          id,
-          ...value
-        }))
+        .filter(([id, value]) => value && value.stateroot)
+        .map(([id, value]) => {
+          console.log(id, value); // 打印每个节点对象
+          return {
+            id,
+            ...value,
+            timestamp: value.timestamp || value.stateroot?.timestamp || 'N/A'
+          }
+        })
     }
   },
   async created() {
@@ -95,25 +83,75 @@ export default {
     async refresh() {
       try {
         const res = await getStatus()
-        console.log('API response:', res.data)
         if (res.data.success && res.data.nodes) {
-          // 解析 output 字符串为对象
-          try {
-            this.nodes = res.data.nodes
-          } catch (e) {
-            console.error('Failed to parse output JSON:', e, res.data.nodes)
-            this.nodes = {}
-          }
-          console.log('Parsed nodes:', this.nodes)
+          this.nodes = res.data.nodes
         } else {
-          console.warn('API returned error or empty nodes:', res.data.error)
           this.nodes = {}
         }
       } catch (err) {
         console.error('Axios request failed:', err)
         this.nodes = {}
       }
+    },
+    formatTime(isoTime) {
+      if (!isoTime) return 'N/A';
+      const date = new Date(isoTime);
+      const Y = date.getFullYear();
+      const M = String(date.getMonth() + 1).padStart(2, '0');
+      const D = String(date.getDate()).padStart(2, '0');
+      const h = String(date.getHours()).padStart(2, '0');
+      const m = String(date.getMinutes()).padStart(2, '0');
+      const s = String(date.getSeconds()).padStart(2, '0');
+      return `${Y}-${M}-${D} ${h}:${m}:${s}`;
     }
   }
 }
 </script>
+
+<style scoped>
+.container {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.node-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.node-title {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #ff4d4f;
+  word-break: break-word;
+}
+
+.node-value {
+  display: flex;
+  flex-wrap: wrap; /* 手机端换行 */
+  gap: 0.5rem 1rem;
+  margin-top: 0.3rem;
+  justify-content: flex-start; /* 左对齐整个区域 */
+  align-items: flex-start;      /* 保证纵向左顶对齐 */
+  text-align: left;             /* 对内部文字生效 */
+}
+
+.node-field {
+  flex: 1 1 45%; /* 最大占比 45%，自适应 */
+  font-size: 0.85rem;
+  word-break: break-word;
+  text-align: left; /* 内部文字左对齐 */
+}
+
+.label {
+  color: #1890ff;
+  font-weight: 500;
+  margin-right: 0.25rem;
+}
+
+.refresh-btn {
+  margin-top: 1rem;
+}
+</style>

@@ -1,57 +1,61 @@
 #!/bin/bash
+# --------------------------
+# status.sh (优化版 v2)
+# --------------------------
 
-# 当前脚本目录（backend/scripts）
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-# 项目根目录
 ROOT_DIR="$(cd "$SCRIPT_DIR/../../" && pwd)"
-
-# nodes.json 的绝对路径
 nodes_file="$ROOT_DIR/nodes.json"
-
-# Debug（stderr）
-echo "[DEBUG] SCRIPT_DIR: $SCRIPT_DIR" >&2
-echo "[DEBUG] ROOT_DIR: $ROOT_DIR" >&2
-echo "[DEBUG] nodes_file: $nodes_file" >&2
-
-# 检查 nodes.json 是否存在
-if [ ! -f "$nodes_file" ]; then
-  echo "{\"error\": \"nodes.json not found\"}"
-  exit 1
-fi
-
 CLI="$SCRIPT_DIR/cli.sh"
 
-# 读取节点列表
+# 检查 nodes.json
+[ ! -f "$nodes_file" ] && echo '{"error":"nodes.json not found"}' && exit 1
+
 hosts=$(jq -c '.[]' "$nodes_file")
 
-# JSON 结果
-result="{"
+# 函数：处理单节点
+fetch_node() {
+  local node_json=$1
+  local id host port user pass stateroot order prev_order block_info timestamp
 
-first=true
+  id=$(jq -r '.id' <<<"$node_json")
+  host=$(jq -r '.host' <<<"$node_json")
+  port=$(jq -r '.port' <<<"$node_json")
+  user=$(jq -r '.user' <<<"$node_json")
+  pass=$(jq -r '.pass' <<<"$node_json")
 
-for node in $hosts; do
-  id=$(echo "$node" | jq -r '.id')
-  host=$(echo "$node" | jq -r '.host')
-  port=$(echo "$node" | jq -r '.port')
-  user=$(echo "$node" | jq -r '.user')
-  pass=$(echo "$node" | jq -r '.pass')
-
-  # 获取 stateroot
   stateroot=$($CLI -h "$host" -p "$port" --user "$user" --password "$pass" stateroot 2>/dev/null)
   [ -z "$stateroot" ] && stateroot="{}"
 
-  # 拼接 JSON
-  if [ "$first" = true ]; then
-    first=false
-  else
-    result="$result,"
-  fi
+  order=$(jq -r '.Order' <<<"$stateroot")
+  [ -z "$order" ] && order=0
+  prev_order=$((order - 1))
+  [ $prev_order -lt 0 ] && prev_order=0
 
-  result="$result \"${id}\": {\"host\": \"${host}\", \"stateroot\": ${stateroot}}"
+  block_info=$($CLI -h "$host" -p "$port" --user "$user" --password "$pass" block "$prev_order" 2>/dev/null)
+  timestamp=$(jq -r '.timestamp' <<<"$block_info")
+  [ -z "$timestamp" ] && timestamp=0
+
+  jq -n \
+    --arg id "$id" \
+    --arg host "$host" \
+    --argjson stateroot "$stateroot" \
+    --arg timestamp "$timestamp" \
+    '{($id): {host: $host, stateroot: $stateroot, timestamp: $timestamp}}'
+}
+
+# --------------------------
+# 并行处理所有节点
+# --------------------------
+# 用数组收集所有后台任务输出
+outputs=()
+
+for node in $hosts; do
+  outputs+=("$(fetch_node "$node" &)")
 done
 
-result="$result }"
+# 等待所有后台任务完成
+wait
 
-# 最终只输出纯 JSON（stdout）
-echo "$result"
+# 合并输出
+jq -s 'reduce .[] as $item ({}; . * $item)' <<<"${outputs[*]}"
