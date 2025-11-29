@@ -8,11 +8,20 @@ const cors = require('cors');
 const app = express();
 
 // ✅ 启用 CORS
-app.use(cors({
-    origin: 'http://localhost:5173', // 允许前端访问
+// 启动 dev 时： NODE_ENV=development node index.js
+// 生产部署时： NODE_ENV=production node index.js
+if (process.env.NODE_ENV === 'development') {
+  // 开发环境允许本地前端跨域
+  app.use(cors({
+    origin: 'http://localhost:5173', // 前端 dev server
     methods: ['GET', 'POST'],
     credentials: true
-}));
+  }));
+} else {
+  // 生产环境不启用 CORS，由 Nginx 处理
+  console.log('Production mode: CORS handled by Nginx');
+}
+
 
 // 假设当前文件是 backend/index.js，nodes.json 在项目根目录
 const nodesFile = path.resolve(__dirname, '..', 'nodes.json');
