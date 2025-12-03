@@ -10,6 +10,7 @@ const app = express();
 // ✅ 启用 CORS
 // 启动 dev 时： NODE_ENV=development node index.js
 // 生产部署时： NODE_ENV=production node index.js
+// NODE_ENV=production pm2 start index.js --name node-monitor-backend 
 if (process.env.NODE_ENV === 'development') {
   // 开发环境允许本地前端跨域
   app.use(cors({
